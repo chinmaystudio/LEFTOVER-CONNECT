@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "userProfile": {
+      "title": "UserProfile",
+      "description": "User profile data including trust ratings, karma points, and shared counters.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Firebase Auth UID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable full name of the user"
+        },
+        "email": {
+          "type": "string",
+          "description": "Primary email address of the user"
+        },
+        "location": {
+          "type": "string",
+          "description": "City or area of the user"
+        },
+        "mealsShared": {
+          "type": "integer",
+          "description": "Number of meals shared by the user"
+        },
+        "karmaPoints": {
+          "type": "integer",
+          "description": "Total karma points earned from sharing"
+        },
+        "rating": {
+          "type": "number",
+          "description": "Average Trust score / rating out of 5.0"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL to the user's preferred avatar"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "name", "email", "createdAt"]
+    },
+    "userReview": {
+      "title": "UserReview",
+      "description": "A review written by a community member or NGO about a user.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Review unique ID"
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Name of the review editor"
+        },
+        "rating": {
+          "type": "integer",
+          "description": "Rating out of 5 stars"
+        },
+        "text": {
+          "type": "string",
+          "description": "Content of the review"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "authorName", "rating", "text", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "userProfile",
+      "description": "Collection of verified user profiles."
+    },
+    "/users/{userId}/reviews/{reviewId}": {
+      "schema": "userReview",
+      "description": "Sub-collection of user reviews from the community and NGOs."
+    }
+  }
+}

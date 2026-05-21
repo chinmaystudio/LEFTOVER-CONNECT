@@ -1,0 +1,8 @@
+{
+  "name": "Leftover Connect",
+  "description": "A modern platform to reduce food waste by sharing extra food with neighbors and NGOs.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": []
+}

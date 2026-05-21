@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Great Safety Net (Default-deny catch-all)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation blueprints
+    function isValidUserProfile(data) {
+      return data.id == request.auth.uid 
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.email is string && data.email.size() > 0 && data.email.size() <= 100
+        && (!('location' in data) || (data.location is string && data.location.size() <= 100))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1000))
+        && (!('mealsShared' in data) || (data.mealsShared is int))
+        && (!('karmaPoints' in data) || (data.karmaPoints is int))
+        && (!('rating' in data) || (data.rating is number || data.rating is int))
+        && data.createdAt == request.time;
+    }
+
+    function isValidUserProfileUpdate(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && (!('location' in data) || (data.location is string && data.location.size() <= 100))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1000))
+        && (!('mealsShared' in data) || (data.mealsShared is int))
+        && (!('karmaPoints' in data) || (data.karmaPoints is int))
+        && (!('rating' in data) || (data.rating is number || data.rating is int));
+    }
+
+    function isValidUserReview(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.authorName is string && data.authorName.size() > 0 && data.authorName.size() <= 100
+        && data.rating is int && data.rating >= 1 && data.rating <= 5
+        && data.text is string && data.text.size() > 0 && data.text.size() <= 1000
+        && data.createdAt == request.time;
+    }
+
+    // Match rules for users
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId);
+      allow list: if false; // Security enforcer - disable blanket lists of user profiles
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming());
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfileUpdate(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'location', 'photoURL', 'mealsShared', 'karmaPoints', 'rating'])
+      );
+      allow delete: if false; // Profiles are immortal
+
+      // Sub-collection of reviews
+      match /reviews/{reviewId} {
+        allow get: if isSignedIn() && isValidId(reviewId);
+        allow list: if isSignedIn(); // We can retrieve the list of reviews for a user
+        allow create: if isSignedIn() && isValidId(reviewId) && isValidUserReview(incoming());
+        allow update, delete: if false; // Reviews are write-once, immutable for auditing and preventing trust system abuse
+      }
+    }
+  }
+}
